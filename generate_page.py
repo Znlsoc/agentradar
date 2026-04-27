@@ -6,6 +6,55 @@ import re
 import os
 from pathlib import Path
 
+# 来源名称到 URL 的映射
+SOURCE_URL_MAP = {
+    "36氪": "https://36kr.com",
+    "虎嗅/36氪": "https://36kr.com",
+    "腾讯新闻": "https://news.qq.com",
+    "新闻腾讯": "https://news.qq.com",
+    "新浪财经": "https://finance.sina.com.cn",
+    "新浪": "https://sina.com.cn",
+    "知乎": "https://zhihu.com",
+    "CSDN": "https://csdn.net",
+    "CSDN/AI周报": "https://csdn.net",
+    "AI周报": "https://ai.zhiding.cn",
+    "AI资讯站": "https://ai.xianhuo.com",
+    "IT之家": "https://ithome.com",
+    "搜狐/SOHU": "https://sohu.com",
+    "SOHU": "https://sohu.com",
+    "搜狐": "https://sohu.com",
+    "商业周刊": "https://businessweekly.com",
+    "新华网": "https://xinhuanet.com",
+    "网信办": "http://www.cac.gov.cn",
+    "OpenClaw官网": "https://openclaw.cn",
+    "行业盘点": "https://example.com",
+    "QuestMobile": "https://questmobile.com",
+    "中国日报": "https://chinadaily.com.cn",
+    "winzheng/36kr": "https://36kr.com",
+    "21经济/腾讯云": "https://21jingji.com",
+    "腾讯云": "https://cloud.tencent.com",
+    "商业周刊": "https://businessweekly.com",
+    "cn-sec": "https://cn-sec.com",
+    "aiproducthub": "https://aiproducthub.com",
+    "技术栈/juejin": "https://juejin.cn",
+    "juejin": "https://juejin.cn",
+    "多个资讯源": "https://36kr.com",
+}
+
+def get_source_url(source):
+    """获取来源对应的 URL"""
+    # 清理来源名称（去掉括号内容）
+    clean_source = re.sub(r'\([^)]*\)', '', source).strip()
+    # 尝试直接匹配
+    if clean_source in SOURCE_URL_MAP:
+        return SOURCE_URL_MAP[clean_source]
+    # 尝试部分匹配
+    for key in SOURCE_URL_MAP:
+        if key in clean_source:
+            return SOURCE_URL_MAP[key]
+    # 默认返回搜索引擎搜索
+    return f"https://www.google.com/search?q={clean_source}+AI+新闻"
+
 def parse_md_file(filepath):
     """解析单个每日情报 md 文件"""
     with open(filepath, 'r', encoding='utf-8') as f:
@@ -53,13 +102,15 @@ def parse_md_file(filepath):
 
         for row in rows:
             item_date, event, info, source, note = row
+            source_clean = source.strip()
             items.append({
                 'type': category,
                 'date': file_date,  # 使用文件日期作为归属日期
                 'event_date': item_date.strip(),  # 保留事件原始发生日期
                 'title': event.strip(),
                 'info': info.strip(),
-                'source': source.strip(),
+                'source': source_clean,
+                'source_url': get_source_url(source_clean),
                 'note': note.strip()
             })
 
@@ -328,7 +379,8 @@ def generate_html(data_list):
             gap: 8px;
         }}
 
-        .card-source {{ background: #f1f5f9; padding: 2px 8px; border-radius: 4px; }}
+.card-source {{ background: #f1f5f9; padding: 2px 8px; border-radius: 4px; text-decoration: none; color: inherit; cursor: pointer; }}
+        .card-source:hover {{ background: #e2e8f0; }}
         .card-note {{ font-style: italic; }}
 
         /* 展开详情 */
@@ -685,7 +737,7 @@ def generate_html(data_list):
                                 </div>
                                 <div class="card-info">${{item.info}}</div>
                                 <div class="card-footer">
-                                    <span class="card-source">${{item.source}}</span>
+                                    <a href="${{item.source_url}}" target="_blank" class="card-source" onclick="event.stopPropagation()">${{item.source}}</a>
                                     <span class="card-note">${{item.note || ''}}</span>
                                 </div>
                                 <div class="card-detail">
