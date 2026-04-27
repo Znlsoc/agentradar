@@ -161,6 +161,7 @@ def generate_html(data_list):
                 'date': item['date'],
                 'info': item['info'],
                 'source': item['source'],
+                'source_url': item.get('source_url', ''),
                 'note': item['note']
             })
 
